@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"pokedexcli/internal/pokeapi"
 )
 
 func cleanInput(text string) []string {
@@ -12,6 +14,12 @@ func cleanInput(text string) []string {
 	splitWords := strings.Fields(text)
 
 	return splitWords
+}
+
+type cliCommand struct {
+	name        string
+	description string
+	callback    func() error
 }
 
 func getCommands() map[string]cliCommand {
@@ -25,6 +33,11 @@ func getCommands() map[string]cliCommand {
 			name:        "help",
 			description: "Displays a help message",
 			callback:    commandHelp,
+		},
+		"map": {
+			name:        "map",
+			description: "Displays a batch of 20 areas",
+			callback:    commandNext,
 		},
 	}
 	return commands
@@ -42,5 +55,10 @@ func commandHelp() error {
 	for _, cmd := range getCommands() {
 		fmt.Printf("%v: %v\n", cmd.name, cmd.description)
 	}
+	return nil
+}
+
+func commandNext() error {
+	pokeapi.LocationsNext()
 	return nil
 }
