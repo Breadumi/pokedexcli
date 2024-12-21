@@ -2,15 +2,13 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 
+	"pokedexcli/internal/constants"
 	"pokedexcli/internal/pokeapi"
-)
-
-const (
-	baseURL = "https://pokeapi.co/api/v2/"
 )
 
 func cleanInput(text string) []string {
@@ -31,6 +29,7 @@ type config struct {
 	Next       *string
 	Prev       *string
 	fullClient pokeapi.Client
+	args       []string
 }
 
 func startRepl(con *config) {
@@ -40,12 +39,12 @@ func startRepl(con *config) {
 	for {
 		fmt.Print("Pokedex > ")
 		scanner.Scan()
-		words := cleanInput(scanner.Text())
-		if len(words) == 0 {
+		con.args = cleanInput(scanner.Text())
+		if len(con.args) == 0 {
 			continue
 		}
 
-		command, ok := getCommands()[words[0]]
+		command, ok := getCommands()[con.args[0]]
 		if ok {
 			err := command.callback(con)
 			if err != nil {
@@ -80,6 +79,11 @@ func getCommands() map[string]cliCommand {
 			description: "Displays previous page of 20 areas",
 			callback:    commandPrev,
 		},
+		"explore": {
+			name:        "explore",
+			description: "Displays pokemon in a region",
+			callback:    commandPokemon,
+		},
 	}
 	return commands
 }
@@ -100,7 +104,7 @@ func commandHelp(con *config) error {
 }
 
 func commandNext(con *config) error {
-	url := baseURL + "location-area?offset=0&limit=20"
+	url := constants.BaseURL + "location-area?offset=0&limit=20"
 	if con.Next == nil {
 		con.Next = &url
 	}
@@ -137,5 +141,24 @@ func commandPrev(con *config) error {
 		fmt.Println(result.Name)
 	}
 
+	return nil
+}
+
+func commandPokemon(con *config) error {
+	if len(con.args) != 2 {
+		return errors.New("expected 1 argument for command `explore`: type help for more info")
+	}
+	pokemon, err := con.fullClient.GetPokemon(con.args[1])
+	if err != nil {
+		return err
+	}
+	if len(pokemon) < 1 {
+		fmt.Println("No Pokemon found!")
+	}
+	fmt.Printf("Exploring %s...\n", con.args[1])
+	fmt.Println("Found Pokemon:")
+	for _, pkmn := range pokemon {
+		fmt.Printf(" - %s\n", pkmn)
+	}
 	return nil
 }
