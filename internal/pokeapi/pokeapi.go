@@ -3,6 +3,7 @@ package pokeapi
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 )
 
@@ -16,25 +17,42 @@ type LocationBatch struct {
 	} `json:"results"`
 }
 
-func Locations(url *string) (locs LocationBatch, err error) {
-	client := http.Client{}
+func (c *Client) Locations(url *string) (locs LocationBatch, err error) {
+
+	// Client struct in client.go
+	//c.client - http.Client{} struct
 
 	req, err := http.NewRequest("GET", *url, nil)
+	if err != nil {
+		fmt.Printf("Error generating request: %v", err)
+		return LocationBatch{}, err
+	}
+
+	if v, ok := c.cache.Get(*url); ok {
+		err = json.Unmarshal(v, &locs)
+		if err != nil {
+			return LocationBatch{}, err
+		}
+		return locs, nil
+
+	}
+
+	resp, err := c.client.Do(req)
 	if err != nil {
 		fmt.Printf("Error getting response: %v", err)
 		return LocationBatch{}, err
 	}
 
-	resp, err := client.Do(req)
+	defer resp.Body.Close()
+
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Printf("Error getting repsonse: %v", err)
 		return LocationBatch{}, err
 	}
 
-	defer resp.Body.Close()
+	c.cache.Add(*url, data)
 
-	decoder := json.NewDecoder(resp.Body)
-	if err := decoder.Decode(&locs); err != nil {
+	if err = json.Unmarshal(data, &locs); err != nil {
 		return LocationBatch{}, err
 	}
 

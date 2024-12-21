@@ -28,14 +28,14 @@ type cliCommand struct {
 }
 
 type config struct {
-	Next *string
-	Prev *string
+	Next       *string
+	Prev       *string
+	fullClient pokeapi.Client
 }
 
-func startRepl() {
+func startRepl(con *config) {
 
 	scanner := bufio.NewScanner(os.Stdin)
-	con := &config{}
 
 	for {
 		fmt.Print("Pokedex > ")
@@ -100,11 +100,11 @@ func commandHelp(con *config) error {
 }
 
 func commandNext(con *config) error {
-	url := baseURL + "/" + "location-area"
+	url := baseURL + "location-area?offset=0&limit=20"
 	if con.Next == nil {
 		con.Next = &url
 	}
-	locs, err := pokeapi.Locations(con.Next)
+	locs, err := con.fullClient.Locations(con.Next)
 	if err != nil {
 		fmt.Println("Error A")
 		return err
@@ -126,7 +126,7 @@ func commandPrev(con *config) error {
 		return nil
 	}
 
-	locs, err := pokeapi.Locations(con.Prev)
+	locs, err := con.fullClient.Locations(con.Prev)
 	if err != nil {
 		return err
 	}
