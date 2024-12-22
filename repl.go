@@ -25,14 +25,13 @@ func cleanInput(text string) []string {
 type cliCommand struct {
 	name        string
 	description string
-	callback    func(*config) error
+	callback    func(*config, ...string) error
 }
 
 type config struct {
 	Next       *string
 	Prev       *string
 	fullClient pokeapi.Client
-	args       []string
 	Pokedex    dex
 }
 
@@ -63,16 +62,20 @@ func startRepl(con *config) {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	for {
+		args := []string{}
 		fmt.Print("Pokedex > ")
 		scanner.Scan()
-		con.args = cleanInput(scanner.Text())
-		if len(con.args) == 0 {
+		words := cleanInput(scanner.Text())
+		if len(words) == 0 {
 			continue
 		}
+		if len(words) > 1 {
+			args = words[1:]
+		}
 
-		command, ok := getCommands()[con.args[0]]
+		command, ok := getCommands()[words[0]]
 		if ok {
-			err := command.callback(con)
+			err := command.callback(con, args...)
 			if err != nil {
 				fmt.Printf("%v\n", err)
 			}
@@ -120,17 +123,28 @@ func getCommands() map[string]cliCommand {
 			description: "inspect <pokemon> - Inspect <pokemon>'s stats if caught",
 			callback:    commandInspect,
 		},
+		"pokedex": {
+			name:        "pokedex",
+			description: "List all caught Pokemon",
+			callback:    commandPokedex,
+		},
 	}
 	return commands
 }
 
-func commandExit(con *config) error {
+func commandExit(con *config, args ...string) error {
+	if len(args) > 0 {
+		return errors.New("too many arguments: expected 0")
+	}
 	fmt.Print("Closing the Pokedex... Goodbye!\n")
 	os.Exit(0)
 	return nil
 }
 
-func commandHelp(con *config) error {
+func commandHelp(con *config, args ...string) error {
+	if len(args) > 0 {
+		return errors.New("too many arguments: expected 0")
+	}
 	fmt.Print("Welcome to the Pokedex!\n")
 	fmt.Print("Usage:\n\n")
 	for _, cmd := range getCommands() {
@@ -139,7 +153,10 @@ func commandHelp(con *config) error {
 	return nil
 }
 
-func commandNext(con *config) error {
+func commandNext(con *config, args ...string) error {
+	if len(args) > 0 {
+		return errors.New("too many arguments: expected 0")
+	}
 	url := constants.BaseURL + "location-area?offset=0&limit=20"
 	if con.Next == nil {
 		con.Next = &url
@@ -159,7 +176,11 @@ func commandNext(con *config) error {
 	return nil
 }
 
-func commandPrev(con *config) error {
+func commandPrev(con *config, args ...string) error {
+
+	if len(args) > 0 {
+		return errors.New("too many arguments: expected 0")
+	}
 
 	if con.Prev == nil {
 		fmt.Println("You're on the first page!")
@@ -180,18 +201,18 @@ func commandPrev(con *config) error {
 	return nil
 }
 
-func commandExplore(con *config) error {
-	if len(con.args) != 2 {
+func commandExplore(con *config, args ...string) error {
+	if len(args) != 0 {
 		return errors.New("expected 1 argument for command `explore`: type help for more info")
 	}
-	pokemon, err := con.fullClient.GetPokemonList(con.args[1])
+	pokemon, err := con.fullClient.GetPokemonList(args[0])
 	if err != nil {
 		return err
 	}
 	if len(pokemon) < 1 {
 		fmt.Println("No Pokemon found!")
 	}
-	fmt.Printf("Exploring %s...\n", con.args[1])
+	fmt.Printf("Exploring %s...\n", args[1])
 	fmt.Println("Found Pokemon:")
 	for _, pkmn := range pokemon {
 		fmt.Printf(" - %s\n", pkmn)
@@ -199,14 +220,14 @@ func commandExplore(con *config) error {
 	return nil
 }
 
-func commandCatch(con *config) error {
-	if len(con.args) != 2 {
+func commandCatch(con *config, args ...string) error {
+	if len(args) != 1 {
 		return errors.New("expected 1 argument for command `catch`: type help for more info")
 	}
-	name := con.args[1]
+	name := args[0]
 	fmt.Printf("Throwing a Pokeball at %s...\n", name)
 
-	baseExp, err := con.fullClient.GetBaseExp(con.args[1])
+	baseExp, err := con.fullClient.GetBaseExp(args[0])
 	if err != nil {
 		return err
 	}
@@ -231,13 +252,12 @@ func commandCatch(con *config) error {
 	return nil
 }
 
-func commandInspect(con *config) error {
-	if len(con.args) != 2 {
+func commandInspect(con *config, args ...string) error {
+	if len(args) != 1 {
 		return errors.New("expected 1 argument for command `inspect`: type help for more info")
 	}
-	name := con.args[1]
 
-	pokemon := con.Pokedex.Entries[name]
+	pokemon := con.Pokedex.Entries[args[0]]
 
 	fmt.Printf("Name: %s\n", pokemon.Name)
 	fmt.Printf("Height: %v\n", pokemon.Height)
@@ -253,6 +273,10 @@ func commandInspect(con *config) error {
 	for _, t := range pokemon.Type {
 		fmt.Printf("  - %s\n", t)
 	}
+	return nil
+}
+
+func commandPokedex(con *config, args ...string) error {
 	return nil
 }
 
