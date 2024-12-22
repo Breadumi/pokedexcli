@@ -202,7 +202,7 @@ func commandPrev(con *config, args ...string) error {
 }
 
 func commandExplore(con *config, args ...string) error {
-	if len(args) != 0 {
+	if len(args) != 1 {
 		return errors.New("expected 1 argument for command `explore`: type help for more info")
 	}
 	pokemon, err := con.fullClient.GetPokemonList(args[0])
@@ -212,7 +212,7 @@ func commandExplore(con *config, args ...string) error {
 	if len(pokemon) < 1 {
 		fmt.Println("No Pokemon found!")
 	}
-	fmt.Printf("Exploring %s...\n", args[1])
+	fmt.Printf("Exploring %s...\n", args[0])
 	fmt.Println("Found Pokemon:")
 	for _, pkmn := range pokemon {
 		fmt.Printf(" - %s\n", pkmn)
@@ -277,6 +277,17 @@ func commandInspect(con *config, args ...string) error {
 }
 
 func commandPokedex(con *config, args ...string) error {
+	if len(args) > 0 {
+		return errors.New("too many arguments: expected 0")
+	}
+	pokemap := &con.Pokedex.Entries
+	if *pokemap == nil || len(*pokemap) == 0 {
+		fmt.Println("It's empty! Go catch some Pokemon!")
+	} else {
+		for k := range *pokemap {
+			fmt.Printf(" - %s\n", k)
+		}
+	}
 	return nil
 }
 
