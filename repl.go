@@ -236,6 +236,23 @@ func commandInspect(con *config) error {
 		return errors.New("expected 1 argument for command `inspect`: type help for more info")
 	}
 	name := con.args[1]
+
+	pokemon := con.Pokedex.Entries[name]
+
+	fmt.Printf("Name: %s\n", pokemon.Name)
+	fmt.Printf("Height: %v\n", pokemon.Height)
+	fmt.Printf("Weight: %v\n", pokemon.Weight)
+	fmt.Println("Stats:")
+	fmt.Printf("  -hp: %v\n", pokemon.Stats.HP)
+	fmt.Printf("  -attack: %v\n", pokemon.Stats.ATK)
+	fmt.Printf("  -defense: %v\n", pokemon.Stats.DEF)
+	fmt.Printf("  -special-attack: %v\n", pokemon.Stats.SpATK)
+	fmt.Printf("  -special-defense: %v\n", pokemon.Stats.SpDEF)
+	fmt.Printf("  -speed: %v\n", pokemon.Stats.SPD)
+	fmt.Println("Types:")
+	for _, t := range pokemon.Type {
+		fmt.Printf("  - %s\n", t)
+	}
 	return nil
 }
 
