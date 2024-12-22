@@ -20,7 +20,7 @@ func (c *Client) Locations(url *string) (locs LocationBatch, err error) {
 		return LocationBatch{}, err
 	}
 
-	if v, ok := c.cache.Get(*url); ok {
+	if v, ok := c.Cache.Get(*url); ok {
 		err = json.Unmarshal(v, &locs)
 		if err != nil {
 			return LocationBatch{}, err
@@ -29,7 +29,7 @@ func (c *Client) Locations(url *string) (locs LocationBatch, err error) {
 
 	}
 
-	resp, err := c.client.Do(req)
+	resp, err := c.Client.Do(req)
 	if err != nil {
 		fmt.Printf("Error getting response: %v", err)
 		return LocationBatch{}, err
@@ -42,7 +42,7 @@ func (c *Client) Locations(url *string) (locs LocationBatch, err error) {
 		return LocationBatch{}, err
 	}
 
-	c.cache.Add(*url, data)
+	c.Cache.Add(*url, data)
 
 	if err = json.Unmarshal(data, &locs); err != nil {
 		return LocationBatch{}, err
@@ -51,7 +51,7 @@ func (c *Client) Locations(url *string) (locs LocationBatch, err error) {
 	return locs, nil
 }
 
-func (c *Client) GetPokemon(tag string) (pokemon []string, err error) {
+func (c *Client) GetPokemonList(tag string) (pokemon []string, err error) {
 
 	url := constants.BaseURL + "location-area/" + tag
 	var area Area
@@ -62,7 +62,7 @@ func (c *Client) GetPokemon(tag string) (pokemon []string, err error) {
 		return pokemon, err
 	}
 
-	if v, ok := c.cache.Get(url); ok {
+	if v, ok := c.Cache.Get(url); ok {
 		err = json.Unmarshal(v, &area)
 		if err != nil {
 			return pokemon, err
@@ -74,7 +74,7 @@ func (c *Client) GetPokemon(tag string) (pokemon []string, err error) {
 
 	}
 
-	resp, err := c.client.Do(req)
+	resp, err := c.Client.Do(req)
 	if err != nil {
 		fmt.Printf("Error getting response: %v", err)
 		return pokemon, err
@@ -87,7 +87,7 @@ func (c *Client) GetPokemon(tag string) (pokemon []string, err error) {
 		return pokemon, err
 	}
 
-	c.cache.Add(url, data)
+	c.Cache.Add(url, data)
 
 	if err = json.Unmarshal(data, &area); err != nil {
 		return pokemon, err
@@ -98,4 +98,45 @@ func (c *Client) GetPokemon(tag string) (pokemon []string, err error) {
 	}
 
 	return pokemon, nil
+}
+
+func (c *Client) GetBaseExp(tag string) (baseExp int, err error) {
+	url := constants.BaseURL + "pokemon/" + tag
+	var pokemon PokemonFull
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		fmt.Printf("Error generating request: %v", err)
+		return 0, err
+	}
+
+	if v, ok := c.Cache.Get(url); ok {
+		err = json.Unmarshal(v, &pokemon)
+		if err != nil {
+			return 0, err
+		}
+		return pokemon.BaseExperience, nil
+	}
+
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		fmt.Printf("Error getting response: %v", err)
+		return 0, nil
+	}
+
+	defer resp.Body.Close()
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, nil
+	}
+
+	c.Cache.Add(url, data)
+
+	if err = json.Unmarshal(data, &pokemon); err != nil {
+		return 0, err
+	}
+
+	return pokemon.BaseExperience, nil
+
 }

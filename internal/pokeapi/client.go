@@ -7,13 +7,13 @@ import (
 )
 
 type Client struct {
-	cache  *pokecache.Cache
-	client http.Client
+	Cache  *pokecache.Cache
+	Client http.Client
 }
 
 func NewClient(interval time.Duration) Client {
 	return Client{
-		cache:  pokecache.NewCache(interval),
-		client: http.Client{},
+		Cache:  pokecache.NewCache(interval),
+		Client: http.Client{},
 	}
 }
